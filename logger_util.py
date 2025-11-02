@@ -2,6 +2,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+import time
 
 def setup_logger(name="quant_news", log_dir="logs", level=logging.INFO):
     """
@@ -33,6 +34,9 @@ def setup_logger(name="quant_news", log_dir="logs", level=logging.INFO):
         backupCount=7,    # 保留7天
         encoding="utf-8"
     )
+
+    # 设置为北京时间（UTC+8）
+    logging.Formatter.converter = lambda *args: time.localtime(time.time() + 8 * 3600)
     file_fmt = logging.Formatter(
         "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
         "%Y-%m-%d %H:%M:%S"
