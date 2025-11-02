@@ -1,0 +1,2 @@
+# Amsgbot
+ financial information aggregation
