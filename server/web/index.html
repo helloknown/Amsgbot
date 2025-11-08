@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>聚合财经快讯</title>
+  <script src="/static/vue.global.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: #fff;
+      padding: 10px 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-left {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .header-left span {
+      color: #666;
+      font-weight: normal;
+      font-size: 14px;
+      margin-left: 8px;
+    }
+    .header-center {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      color: #333;
+    }
+    .countdown {
+      display: inline-block;
+      width: 15px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toggle input {
+      accent-color: #0078d7;
+    }
+    .refresh-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #555;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+    .message {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .time {
+      font-size: 14px;
+      color: #de0422;
+      margin-bottom: 6px;
+    }
+    .time .date {
+      font-weight: bold;
+      margin-right: 6px;
+    }
+    .time .clock {
+      font-size: 16px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    .content {
+      font-size: 15px;
+      color: #333;
+      line-height: 1.6;
+    }
+    #load-more {
+      background: #0078d7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 20px auto;
+      display: block;
+    }
+    #load-more:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-left">{{ currentTime }}</div>
+    <div class="header-center">聚合财经快讯</div>
+    <div class="header-right">
+      <div class="refresh-status">
+        <input type="checkbox" v-model="autoRefresh">
+        <label><span class="countdown">{{ countdown }}</span>秒后刷新</label>
+      </div>
+      <div class="toggle">
+        <input type="checkbox" v-model="desktopNotify">
+        <label>桌面通知</label>
+      </div>
+      <div class="toggle">
+        <input type="checkbox" v-model="soundAlert">
+        <label>声音提醒</label>
+      </div>
+      <div class="toggle">
+        <input type="checkbox" v-model="voiceNews">
+        <label>语音电报</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div v-for="msg in messages" :key="msg.id" class="message">
+      <div class="time">
+        <span v-if="!isToday(msg.time)" class="date">{{ formatDate(msg.time) }}</span>
+        <span class="clock">{{ formatTime(msg.time) }}</span>
+        <span class="source">{{ msg.source }}</span>
+      </div>
+      <div class="content">{{ msg.content }}</div>
+    </div>
+    <button id="load-more" @click="loadMessages(false, true)" :disabled="loading">{{ loading ? '加载中...' : '加载更多' }}</button>
+  </div>
+
+  <audio ref="notifySound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+</div>
+
+<script>
+const { createApp, ref, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const currentTime = ref('');
+    const autoRefresh = ref(true);
+    const countdown = ref(30);
+    const messages = ref([]);
+    const loading = ref(false);
+    const desktopNotify = ref(true);
+    const soundAlert = ref(true);
+    const voiceNews = ref(false);
+    const notifySound = ref(null);
+    const lastNotifiedId = ref(null);
+    let limit = 100;
+    let counter = 30;
+    let timer = null;
+
+    const updateTime = () => {
+      const now = new Date();
+      const options = {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        weekday: "long",
+        hour12: false,
+        timeZone: "Asia/Shanghai"
+      };
+      currentTime.value = now.toLocaleString("zh-CN", options).replace(/\//g, ".");
+    };
+
+    const isToday = (timeStr) => {
+      const msgDate = new Date(timeStr);
+      const now = new Date();
+      return msgDate.toDateString() === now.toDateString();
+    };
+
+    const formatDate = (timeStr) => {
+      const d = new Date(timeStr);
+      return `${d.getFullYear()}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getDate().toString().padStart(2,'0')}`;
+    };
+
+    const formatTime = (timeStr) => {
+      const d = new Date(timeStr);
+      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+    };
+
+    const loadMessages = async (isAuto = false,  loadMore = false) => {
+      loading.value = true;
+      try {
+        const skip = loadMore ? messages.value.length : 0;
+        limit = loadMore ? 50 : limit;
+        const res = await fetch(`/api/messages?skip=${skip}&limit=${limit}`);
+        const data = await res.json();
+        if (loadMore) {
+          // 追加历史消息到末尾
+          messages.value.push(...data);
+        } else {
+          // 刷新最新消息
+          messages.value = data;
+        }
+        if (isAuto && data[0]) {
+          const latestMsg = data[0];
+          if (latestMsg.id !== lastNotifiedId.value) {
+            if (soundAlert.value && notifySound.value) {
+              notifySound.value.play();
+            }
+            if (desktopNotify.value && Notification.permission === "granted") {
+              new Notification("新消息提示", { body: `${latestMsg.time}【${latestMsg.source}】\n${latestMsg.content}` });
+            }
+            if (voiceNews.value ) {
+              const utter = new SpeechSynthesisUtterance(latestMsg?.content || "");
+              utter.lang = "zh-CN";
+              speechSynthesis.speak(utter);
+            }
+          }
+          lastNotifiedId.value = latestMsg.id;
+        }
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    onMounted(() => {
+      updateTime();
+      setInterval(updateTime, 1000);
+
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+
+      loadMessages();
+
+      timer = setInterval(() => {
+        if (autoRefresh.value) {
+          countdown.value = counter;
+          counter--;
+          if (counter < 0) {
+            loadMessages(true);
+            counter = 30;
+          }
+        }
+      }, 1000);
+    });
+
+    return {
+      currentTime,
+      autoRefresh,
+      countdown,
+      messages,
+      loading,
+      desktopNotify,
+      soundAlert,
+      voiceNews,
+      notifySound,
+      isToday,
+      formatDate,
+      formatTime,
+      loadMessages
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

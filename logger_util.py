@@ -1,6 +1,6 @@
-# logger_util.py
 import logging
-from logging.handlers import TimedRotatingFileHandler
+# from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 import os
 import time
 
@@ -28,10 +28,17 @@ def setup_logger(name="quant_news", log_dir="logs", level=logging.INFO):
     logger.addHandler(console_handler)
 
     # --- 文件输出（每天切分） ---
-    file_handler = TimedRotatingFileHandler(
+    # file_handler = TimedRotatingFileHandler(
+    #     filename=os.path.join(log_dir, f"{name}.log"),
+    #     when="midnight",  # 每天0点切分
+    #     backupCount=7,    # 保留7天
+    #     encoding="utf-8"
+    # )
+
+    file_handler = RotatingFileHandler(
         filename=os.path.join(log_dir, f"{name}.log"),
-        when="midnight",  # 每天0点切分
-        backupCount=7,    # 保留7天
+        maxBytes=5 * 1024 * 1024,  # 5MB
+        backupCount=10,
         encoding="utf-8"
     )
 
