@@ -8,7 +8,7 @@ logger = logging.getLogger("app_log")
 
 # 钉钉推送限流
 MAX_PER_MINUTE = 20
-DINGTALK_WEBHOOK = ["https://oapi.dingtalk.com/robot/send?access_token=4bcc16f75f95ee7d0235902664f5bc8bf530285b4a73edc6224d90f15deea0a8"]
+DINGTALK_WEBHOOK = ["https://oapi.dingtalk.com/robot/send?access_token=1fbfdec75b3fc790be76f0ed78829ba37a0df233bd5319bfe95fa9cde0dpopnd9"]
 
 class DingTalkSender:
     """单个钉钉机器人发送器（带独立限流）"""

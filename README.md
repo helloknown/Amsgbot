@@ -1,2 +1,2 @@
 # Amsgbot
- financial information aggregation
+ 同花顺、新浪财经、财联社财经资讯聚合，可推送至钉钉群机器人，网页展示

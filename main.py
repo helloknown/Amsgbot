@@ -10,8 +10,7 @@
 import logging
 import time
 from datetime import datetime, timezone, timedelta
-import requests
-import akshare as ak
+import stock_info as ak
 import pandas as pd
 import json
 import os
